@@ -1,9 +1,16 @@
 // Global variables
-let timeLeft = 30 * 60; // seconds
+let timeLeft;
 let timerInterval;
 let currentInterval = 'pomodoro';
 let backgroundColor = '#F1F1EF'; // Default background color
 let fontColor = '#37352F'; // Default font color
+
+// Default time settings (in seconds)
+let timeSettings = {
+  pomodoro: 25 * 60,
+  shortBreak: 5 * 60,
+  longBreak: 15 * 60
+};
 
 // DOM elements
 const timeLeftEl = document.getElementById('time-left');
@@ -17,25 +24,28 @@ const settingsModal = document.getElementById('settings-modal');
 const closeModalBtn = document.querySelector('.close-btn');
 const backgroundColorSelect = document.getElementById('background-color');
 const fontColorSelect = document.getElementById('font-color');
+const pomodoroTimeInput = document.getElementById('pomodoro-time');
+const shortBreakTimeInput = document.getElementById('short-break-time');
+const longBreakTimeInput = document.getElementById('long-break-time');
 const saveBtn = document.getElementById('save-btn');
+
+// Initialize timer with current interval
+resetTimer();
 
 // Event listeners for interval buttons
 pomodoroIntervalBtn.addEventListener('click', () => {
   currentInterval = 'pomodoro';
-  timeLeft = 30 * 60;
-  updateTimeLeftTextContent();
+  resetTimer();
 });
 
 shortBreakIntervalBtn.addEventListener('click', () => {
-  currentInterval = 'short-break';
-  timeLeft = 5 * 60;
-  updateTimeLeftTextContent();
+  currentInterval = 'shortBreak';
+  resetTimer();
 });
 
 longBreakIntervalBtn.addEventListener('click', () => {
-  currentInterval = 'long-break';
-  timeLeft = 10 * 60;
-  updateTimeLeftTextContent();
+  currentInterval = 'longBreak';
+  resetTimer();
 });
 
 // Event listener for start/stop button
@@ -50,20 +60,18 @@ startStopBtn.addEventListener('click', () => {
 
 // Event listener for reset button
 resetBtn.addEventListener('click', () => {
-  stopTimer();
-  if (currentInterval === 'pomodoro') {
-    timeLeft = 30 * 60;
-  } else if (currentInterval === 'short-break') {
-    timeLeft = 5 * 60;
-  } else {
-    timeLeft = 10 * 60;
-  }
-  updateTimeLeftTextContent();
-  startStopBtn.textContent = 'Start';
+  resetTimer();
 });
 
 // Event listener for settings button
 settingsBtn.addEventListener('click', () => {
+  // Load current settings into modal inputs
+  pomodoroTimeInput.value = timeSettings.pomodoro / 60;
+  shortBreakTimeInput.value = timeSettings.shortBreak / 60;
+  longBreakTimeInput.value = timeSettings.longBreak / 60;
+  backgroundColorSelect.value = backgroundColor;
+  fontColorSelect.value = fontColor;
+  
   settingsModal.style.display = 'flex';
 });
 
@@ -74,17 +82,25 @@ closeModalBtn.addEventListener('click', () => {
 
 // Event listener for save button in the settings modal
 saveBtn.addEventListener('click', () => {
-  const newBackgroundColor = backgroundColorSelect.value;
-  const newFontColor = fontColorSelect.value;
+  // Save time settings
+  timeSettings.pomodoro = parseInt(pomodoroTimeInput.value) * 60;
+  timeSettings.shortBreak = parseInt(shortBreakTimeInput.value) * 60;
+  timeSettings.longBreak = parseInt(longBreakTimeInput.value) * 60;
+  
+  // Save color preferences
+  backgroundColor = backgroundColorSelect.value;
+  fontColor = fontColorSelect.value;
 
-  // Save preferences to localStorage
-  localStorage.setItem('backgroundColor', newBackgroundColor);
-  localStorage.setItem('fontColor', newFontColor);
+  // Save to localStorage
+  localStorage.setItem('timeSettings', JSON.stringify(timeSettings));
+  localStorage.setItem('backgroundColor', backgroundColor);
+  localStorage.setItem('fontColor', fontColor);
 
-  // Apply the new saved preferences
+  // Apply the new settings
   applyUserPreferences();
+  resetTimer();
 
-  // Close the modal after saving preferences
+  // Close the modal
   settingsModal.style.display = 'none';
 });
 
@@ -96,17 +112,14 @@ function startTimer() {
     if (timeLeft === 0) {
       clearInterval(timerInterval);
       if (currentInterval === 'pomodoro') {
-        timeLeft = 5 * 60;
-        currentInterval = 'short-break';
-        startTimer();
-      } else if (currentInterval === 'short-break') {
-        timeLeft = 10 * 60;
-        currentInterval = 'long-break';
-        startTimer();
+        currentInterval = 'shortBreak';
+      } else if (currentInterval === 'shortBreak') {
+        currentInterval = 'longBreak';
       } else {
-        timeLeft = 30 * 60;
         currentInterval = 'pomodoro';
       }
+      resetTimer();
+      startTimer();
     }
   }, 1000);
 }
@@ -114,6 +127,14 @@ function startTimer() {
 // Function to stop the timer
 function stopTimer() {
   clearInterval(timerInterval);
+  startStopBtn.textContent = 'Start';
+}
+
+// Function to reset the timer
+function resetTimer() {
+  stopTimer();
+  timeLeft = timeSettings[currentInterval];
+  updateTimeLeftTextContent();
   startStopBtn.textContent = 'Start';
 }
 
@@ -127,10 +148,16 @@ function updateTimeLeftTextContent() {
 // Function to apply the user's saved preferences
 function applyUserPreferences() {
   // Retrieve user preferences from localStorage
+  const savedTimeSettings = localStorage.getItem('timeSettings');
   const savedBackgroundColor = localStorage.getItem('backgroundColor');
   const savedFontColor = localStorage.getItem('fontColor');
 
-  // Apply the preferences if they exist in localStorage
+  // Apply time settings if they exist
+  if (savedTimeSettings) {
+    timeSettings = JSON.parse(savedTimeSettings);
+  }
+
+  // Apply color preferences if they exist
   if (savedBackgroundColor) {
     backgroundColor = savedBackgroundColor;
   }
@@ -139,11 +166,12 @@ function applyUserPreferences() {
     fontColor = savedFontColor;
   }
 
-  // Apply the preferences to the Pomodoro Timer widget
+  // Apply the preferences to the page
   document.body.style.backgroundColor = backgroundColor;
   document.body.style.color = fontColor;
   timeLeftEl.style.color = fontColor;
-  // Update the buttons' font and background color
+  
+  // Update the buttons' styles
   const buttons = document.querySelectorAll('.interval-btn, #start-stop-btn, #reset-btn, #settings-btn');
   buttons.forEach((button) => {
     button.style.color = fontColor;
