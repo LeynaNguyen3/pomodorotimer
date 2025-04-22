@@ -69,8 +69,14 @@ settingsBtn.addEventListener('click', () => {
   pomodoroTimeInput.value = timeSettings.pomodoro / 60;
   shortBreakTimeInput.value = timeSettings.shortBreak / 60;
   longBreakTimeInput.value = timeSettings.longBreak / 60;
-  backgroundColorSelect.value = backgroundColor;
-  fontColorSelect.value = fontColor;
+  
+  // Load current color preferences
+  if (backgroundColorSelect) {
+    backgroundColorSelect.value = backgroundColor;
+  }
+  if (fontColorSelect) {
+    fontColorSelect.value = fontColor;
+  }
   
   settingsModal.style.display = 'flex';
 });
@@ -160,17 +166,15 @@ function applyUserPreferences() {
   // Apply color preferences if they exist
   if (savedBackgroundColor) {
     backgroundColor = savedBackgroundColor;
+    document.body.style.backgroundColor = backgroundColor;
   }
 
   if (savedFontColor) {
     fontColor = savedFontColor;
+    document.body.style.color = fontColor;
+    timeLeftEl.style.color = fontColor;
   }
 
-  // Apply the preferences to the page
-  document.body.style.backgroundColor = backgroundColor;
-  document.body.style.color = fontColor;
-  timeLeftEl.style.color = fontColor;
-  
   // Update the buttons' styles
   const buttons = document.querySelectorAll('.interval-btn, #start-stop-btn, #reset-btn, #settings-btn');
   buttons.forEach((button) => {
